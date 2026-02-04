@@ -2,7 +2,8 @@
   "name": "PLC Ladder Editor Pro",
   "short_name": "PLC Editor",
   "description": "Professional PLC Ladder Logic Programming Tool",
-  "start_url": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#2b2b2b",
   "theme_color": "#1976d2",
@@ -22,3 +23,4 @@
     }
   ]
 }
+
