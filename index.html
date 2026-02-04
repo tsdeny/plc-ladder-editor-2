@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<!--
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  PLC LADDER EDITOR PRO                                                       ║
+║  Copyright (c) 2025 - All Rights Reserved                                    ║
+║  PROPRIETARY AND CONFIDENTIAL                                                ║
+║  Unauthorized copying, modification, distribution is strictly prohibited.    ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Professional PLC Ladder Logic Programming Tool">
+    <meta name="theme-color" content="#1976d2">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>PLC Ladder Editor Pro</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #2b2b2b; color: #fff; }
+        
+        .header { background: #1976d2; padding: 1rem; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 1.2rem; }
+        .header-subtitle { font-size: 0.85rem; opacity: 0.9; }
+        .run-btn { padding: 0.8rem 1.5rem; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 1rem; }
+        .run-btn.play { background: #4caf50; color: white; }
+        .run-btn.stop { background: #f44336; color: white; }
+        
+        .tabs { background: #1e1e1e; display: flex; border-bottom: 1px solid #3f3f3f; overflow-x: auto; }
+        .tab { padding: 1rem 1.5rem; background: none; border: none; color: #aaa; cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; font-size: 0.9rem; font-weight: 500; }
+        .tab.active { color: #fff; border-bottom-color: #1976d2; background: #2b2b2b; }
+        .tab:hover { background: #2d2d2d; color: #fff; }
+        
+        .content { padding: 1.5rem; overflow-y: auto; height: calc(100vh - 130px); }
+        
+        .network-card { background: #fff; border-radius: 8px; margin-bottom: 1.5rem; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+        .network-header { background: #e8e8e8; padding: 0.8rem 1rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #d0d0d0; }
+        .network-title { font-weight: 600; color: #333; font-size: 0.95rem; }
+        .action-btn { padding: 0.4rem 0.8rem; border: 1px solid #999; background: white; border-radius: 4px; cursor: pointer; color: #333; font-size: 0.85rem; font-weight: 500; }
+        .action-btn:hover { background: #f5f5f5; }
+        .action-btn.danger { color: #f44336; border-color: #f44336; }
+        
+        .ladder-canvas { background: white; padding: 2rem; min-height: 150px; }
+        .v-line { width: 4px; background: #1976d2; }
+        .h-line { height: 4px; background: #1976d2; width: 30px; }
+        .h-line-flex { height: 4px; background: #1976d2; flex: 1; min-width: 20px; }
+        .v-line-short { width: 4px; background: #1976d2; height: 20px; }
+        
+        .ladder-elem { border: 3px solid #1976d2; background: white; min-width: 90px; height: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; margin: 0 5px; position: relative; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+        .ladder-elem:hover { background: #f0f7ff; box-shadow: 0 0 8px rgba(25, 118, 210, 0.3); }
+        .ladder-elem.active { background: #c8e6c9; border-color: #4caf50; }
+        .elem-symbol { font-size: 1.3rem; font-weight: bold; color: #1976d2; }
+        .elem-address { font-size: 0.75rem; color: #666; margin-top: 0.3rem; font-weight: 600; }
+        
+        .empty-branch { flex: 1; border: 2px dashed #ccc; border-radius: 4px; padding: 1rem; text-align: center; color: #999; font-size: 0.85rem; background: #fafafa; }
+        
+        .delete-branch-btn { position: absolute; right: -12px; top: 50%; transform: translateY(-50%); background: #f44336; color: white; border: none; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-size: 1rem; line-height: 1; z-index: 10; }
+        .delete-branch-btn:hover { background: #d32f2f; }
+        
+        .btn-large { flex: 1; padding: 1rem; border: none; border-radius: 6px; font-weight: bold; font-size: 1rem; cursor: pointer; }
+        .btn-primary { background: #1976d2; color: white; }
+        .btn-secondary { background: #757575; color: white; }
+        .btn-success { background: #4caf50; color: white; }
+        
+        .category-menu { background: #3a3a3a; border-radius: 6px; margin-bottom: 1rem; overflow: hidden; }
+        .category-header { background: #1976d2; padding: 0.9rem 1rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+        .category-header:hover { background: #1565c0; }
+        .category-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+        .category-content.open { max-height: 3000px; }
+        .elem-item { padding: 0.8rem 1rem; background: #2b2b2b; border-bottom: 1px solid #444; cursor: pointer; display: flex; gap: 1rem; align-items: center; }
+        .elem-item:hover { background: #333; }
+        .elem-icon { font-size: 1.5rem; min-width: 50px; text-align: center; }
+        .elem-info { flex: 1; }
+        .elem-name { font-weight: 600; margin-bottom: 0.2rem; }
+        .elem-desc { font-size: 0.8rem; color: #aaa; }
+        
+        .io-form { background: #3a3a3a; padding: 1.5rem; border-radius: 6px; margin-bottom: 1.5rem; }
+        .form-group { margin-bottom: 1rem; }
+        .form-label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; }
+        .form-input, .form-select { width: 100%; padding: 0.7rem; border: 1px solid #555; border-radius: 4px; background: #2b2b2b; color: white; font-size: 1rem; }
+        
+        .io-list { display: flex; flex-direction: column; gap: 0.8rem; }
+        .io-item { background: #3a3a3a; padding: 1rem; border-radius: 6px; display: flex; align-items: center; gap: 1rem; border-left: 4px solid; }
+        .io-item.input { border-left-color: #2196f3; }
+        .io-item.output { border-left-color: #f44336; }
+        .io-item.memory { border-left-color: #ff9800; }
+        .io-icon { font-size: 1.5rem; }
+        .io-indicator { width: 14px; height: 14px; border-radius: 50%; background: #666; }
+        .io-indicator.on { background: #4caf50; box-shadow: 0 0 10px #4caf50; }
+        .io-details { flex: 1; }
+        .io-address { font-weight: 600; font-size: 1rem; }
+        .io-name { font-size: 0.85rem; color: #aaa; }
+        
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: #2b2b2b; border-radius: 8px; padding: 2rem; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+        .modal-title { font-size: 1.3rem; margin-bottom: 1.5rem; color: #1976d2; }
+        
+        .control-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.8rem; margin-bottom: 1.5rem; }
+        .control-btn { padding: 1.2rem; border: 2px solid #555; border-radius: 6px; background: #3a3a3a; color: white; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+        .control-btn.active { background: #4caf50; border-color: #4caf50; }
+        .control-btn:hover { border-color: #1976d2; }
+        
+        .info-box { background: #fff3cd; color: #856404; padding: 1rem; border-radius: 6px; margin-bottom: 1.5rem; border-left: 4px solid #ffc107; }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+    
+    <script>
+        // PLC Elemanları
+        const ELEMENTS = {
+            'Bit Logic': {
+                icon: '🔌',
+                items: [
+                    { type: 'contact-no', symbol: '| |', name: 'NO Contact', desc: 'Normalde Açık Kontak', address: 'I0.0' },
+                    { type: 'contact-nc', symbol: '|/|', name: 'NC Contact', desc: 'Normalde Kapalı Kontak', address: 'I0.1' },
+                    { type: 'coil', symbol: '( )', name: 'Output Coil', desc: 'Çıkış Bobini', address: 'Q0.0' },
+                    { type: 'coil-inv', symbol: '(/)', name: 'Inverted Coil', desc: 'Ters Bobin', address: 'Q0.0' },
+                    { type: 'set', symbol: '(S)', name: 'Set', desc: 'Bit Set Et', address: 'Q0.0' },
+                    { type: 'reset', symbol: '(R)', name: 'Reset', desc: 'Bit Sıfırla', address: 'Q0.0' }
+                ]
+            },
+            'Timers': {
+                icon: '⏱️',
+                items: [
+                    { type: 'ton', symbol: 'TON', name: 'On Delay', desc: 'Açmada Gecikme', params: { PT: 1000, T: 'T1' } },
+                    { type: 'tof', symbol: 'TOF', name: 'Off Delay', desc: 'Kapamada Gecikme', params: { PT: 1000, T: 'T2' } },
+                    { type: 'tp', symbol: 'TP', name: 'Pulse Timer', desc: 'Darbe Zamanlayıcı', params: { PT: 1000, T: 'T3' } }
+                ]
+            },
+            'Counters': {
+                icon: '🔢',
+                items: [
+                    { type: 'ctu', symbol: 'CTU', name: 'Count Up', desc: 'Yukarı Sayıcı', params: { PV: 10, C: 'C1' } },
+                    { type: 'ctd', symbol: 'CTD', name: 'Count Down', desc: 'Aşağı Sayıcı', params: { PV: 10, C: 'C2' } }
+                ]
+            },
+            'Compare': {
+                icon: '⚖️',
+                items: [
+                    { type: 'cmp-eq', symbol: '==', name: 'Equal', desc: 'Eşit mi?', params: { IN1: 0, IN2: 0 } },
+                    { type: 'cmp-gt', symbol: '>', name: 'Greater', desc: 'Büyük mü?', params: { IN1: 0, IN2: 0 } },
+                    { type: 'cmp-lt', symbol: '<', name: 'Less', desc: 'Küçük mü?', params: { IN1: 0, IN2: 0 } }
+                ]
+            },
+            'Math': {
+                icon: '➗',
+                items: [
+                    { type: 'add', symbol: 'ADD', name: 'Add', desc: 'Topla', params: { IN1: 0, IN2: 0, OUT: 'MD0' } },
+                    { type: 'sub', symbol: 'SUB', name: 'Subtract', desc: 'Çıkar', params: { IN1: 0, IN2: 0, OUT: 'MD0' } },
+                    { type: 'mul', symbol: 'MUL', name: 'Multiply', desc: 'Çarp', params: { IN1: 0, IN2: 0, OUT: 'MD0' } }
+                ]
+            },
+            'Sensors': {
+                icon: '📡',
+                items: [
+                    { type: 'temp-sensor', symbol: '🌡️', name: 'Temperature', desc: 'Sıcaklık', params: { address: 'IW0', min: -50, max: 150, unit: '°C' } },
+                    { type: 'pressure-sensor', symbol: '⏲️', name: 'Pressure', desc: 'Basınç', params: { address: 'IW2', min: 0, max: 10, unit: 'bar' } }
+                ]
+            }
+        };
+
+        // YENİ YAPI - Her eleman kendi paralel dallarını tutuyor
+        let state = {
+            tab: 'editor',
+            running: false,
+            openCats: ['Bit Logic'],
+            inputs: [],
+            outputs: [],
+            memory: [],
+            networks: [
+                { 
+                    id: 1, 
+                    elements: []  // Her eleman { type, address, parallels: [] } yapısında
+                }
+            ],
+            editModal: null,
+            elementMenu: null
+        };
+
+        let simInterval = null;
+        let lastStateHash = '';
+
+        // Render
+        function render() {
+            document.getElementById('app').innerHTML = `
+                <div class="header">
+                    <div>
+                        <h1>S7-1200 Ladder Editor Pro</h1>
+                        <div class="header-subtitle">Professional PLC Programming</div>
+                    </div>
+                    <button class="run-btn ${state.running ? 'stop' : 'play'}" onclick="toggleRun()">
+                        ${state.running ? '⏸ DURDUR' : '▶ BAŞLAT'}
+                    </button>
+                </div>
+                
+                <div class="tabs">
+                    <button class="tab ${state.tab === 'editor' ? 'active' : ''}" onclick="setTab('editor')">📝 Editör</button>
+                    <button class="tab ${state.tab === 'elements' ? 'active' : ''}" onclick="setTab('elements')">🧩 Elemanlar</button>
+                    <button class="tab ${state.tab === 'io' ? 'active' : ''}" onclick="setTab('io')">🔌 I/O</button>
+                    <button class="tab ${state.tab === 'simulate' ? 'active' : ''}" onclick="setTab('simulate')">⚡ Simülasyon</button>
+                </div>
+                
+                <div class="content">
+                    ${state.tab === 'editor' ? renderEditor() : ''}
+                    ${state.tab === 'elements' ? renderElements() : ''}
+                    ${state.tab === 'io' ? renderIO() : ''}
+                    ${state.tab === 'simulate' ? renderSimulate() : ''}
+                </div>
+                
+                ${state.editModal ? renderEditModal() : ''}
+            `;
+        }
+
+        function renderEditor() {
+            return state.networks.map((net, idx) => `
+                <div class="network-card">
+                    <div class="network-header">
+                        <div class="network-title">Network ${idx + 1}</div>
+                        <button class="action-btn danger" onclick="deleteNetwork(${net.id})">🗑️ Sil</button>
+                    </div>
+                    <div class="ladder-canvas">
+                        ${renderNetwork(net)}
+                    </div>
+                </div>
+            `).join('') + `
+                <div style="display:flex; gap:1rem;">
+                    <button class="btn-large btn-primary" onclick="addNetwork()">+ Yeni Network</button>
+                    <button class="btn-large btn-secondary" onclick="saveProgram()">💾 Kaydet</button>
+                    <button class="btn-large btn-success" onclick="uploadPLC()">📤 PLC'ye Yükle</button>
+                </div>
+            `;
+        }
+
+        // YENİ RENDER SİSTEMİ - Eleman bazlı paralel dallar
+        function renderNetwork(net) {
+            if (net.elements.length === 0) {
+                return `
+                    <div style="display: flex; align-items: center;">
+                        <div class="v-line" style="height: 80px;"></div>
+                        <div class="empty-branch" style="margin: 0 1rem;">
+                            Boş network - "Elemanlar" sekmesinden eleman ekleyin
+                        </div>
+                        <div class="v-line" style="height: 80px;"></div>
+                    </div>
+                `;
+            }
+
+            return `
+                <div style="display: flex; align-items: flex-start;">
+                    <div class="v-line" style="height: ${calculateNetworkHeight(net)}px;"></div>
+                    <div style="flex: 1; display: flex; align-items: center; flex-wrap: wrap;">
+                        <div class="h-line"></div>
+                        ${net.elements.map((el, idx) => renderElementWithParallels(net, el, idx)).join('')}
+                        <div class="h-line"></div>
+                    </div>
+                    <div class="v-line" style="height: ${calculateNetworkHeight(net)}px;"></div>
+                </div>
+            `;
+        }
+
+        function calculateNetworkHeight(net) {
+            let maxParallels = 0;
+            net.elements.forEach(el => {
+                if (el.parallels && el.parallels.length > maxParallels) {
+                    maxParallels = el.parallels.length;
+                }
+            });
+            return 80 + (maxParallels * 90);
+        }
+
+        function renderElementWithParallels(net, element, elemIdx) {
+            const hasParallels = element.parallels && element.parallels.length > 0;
+            const elActive = evalElement(element) && state.running;
+            
+            let html = `
+                <div style="display: inline-flex; flex-direction: column; align-items: center; position: relative;">
+            `;
+
+            // Ana eleman
+            html += renderSingleElement(net, element, elemIdx, -1, elActive);
+
+            // Paralel dallar (varsa)
+            if (hasParallels) {
+                // Dikey bağlantı çizgisi
+                html += `<div class="v-line-short"></div>`;
+                
+                element.parallels.forEach((parallel, pIdx) => {
+                    const pActive = evalElement(parallel) && state.running;
+                    html += renderSingleElement(net, parallel, elemIdx, pIdx, pActive);
+                    if (pIdx < element.parallels.length - 1) {
+                        html += `<div class="v-line-short"></div>`;
+                    }
+                });
+            }
+
+            html += `</div>`;
+            
+            // Elemanlar arası bağlantı
+            if (elemIdx < net.elements.length - 1) {
+                html += '<div class="h-line-flex"></div>';
+            }
+
+            return html;
+        }
+
+        function renderSingleElement(net, element, elemIdx, parallelIdx, isActive) {
+            const menuOpen = state.elementMenu && 
+                            state.elementMenu.netId === net.id && 
+                            state.elementMenu.elemIdx === elemIdx &&
+                            state.elementMenu.parallelIdx === parallelIdx;
+
+            return `
+                <div style="position: relative;">
+                    <div class="ladder-elem ${isActive ? 'active' : ''}"
+                         data-net-id="${net.id}"
+                         data-elem-idx="${elemIdx}"
+                         data-parallel-idx="${parallelIdx}"
+                         onclick="handleElementClick(event, ${net.id}, ${elemIdx}, ${parallelIdx})"
+                         ondblclick="deleteElement(${net.id}, ${elemIdx}, ${parallelIdx})">
+                        <div class="elem-symbol">${element.symbol}</div>
+                        <div class="elem-address">${element.address || element.params?.T || element.params?.C || element.name || ''}</div>
+                    </div>
+                    
+                    ${menuOpen ? `
+                        <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border: 3px solid #1976d2; border-radius: 8px; z-index: 10000; min-width: 280px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); padding: 0.5rem;">
+                            <div style="padding: 0.8rem; background: #1976d2; color: white; font-weight: 600; border-radius: 4px 4px 0 0; margin: -0.5rem -0.5rem 0.5rem -0.5rem;">
+                                Eleman Menüsü
+                            </div>
+                            ${parallelIdx === -1 ? `
+                                <button onclick="addParallelToElement(${net.id}, ${elemIdx}); event.stopPropagation();" 
+                                        style="width: 100%; padding: 1.2rem; border: none; background: white; color: #1976d2; text-align: left; cursor: pointer; font-weight: 600; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 0.8rem; font-size: 1.05rem; border-radius: 4px;">
+                                    <span style="font-size: 1.4rem;">➕</span> <span>Paralel Dal Ekle</span>
+                                </button>
+                            ` : ''}
+                            <button onclick="deleteElement(${net.id}, ${elemIdx}, ${parallelIdx}); event.stopPropagation();" 
+                                    style="width: 100%; padding: 1.2rem; border: none; background: white; color: #f44336; text-align: left; cursor: pointer; font-weight: 600; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 0.8rem; font-size: 1.05rem; border-radius: 4px;">
+                                <span style="font-size: 1.4rem;">🗑️</span> <span>Elemanı Sil</span>
+                            </button>
+                            <button onclick="closeElementMenu(); event.stopPropagation();" 
+                                    style="width: 100%; padding: 1.2rem; border: none; background: white; color: #666; text-align: left; cursor: pointer; font-size: 1.05rem; border-radius: 4px;">
+                                <span style="font-size: 1.2rem;">✕</span> İptal
+                            </button>
+                        </div>
+                    ` : ''}
+                    
+                    ${parallelIdx > -1 ? `
+                        <button class="delete-branch-btn" onclick="deleteElement(${net.id}, ${elemIdx}, ${parallelIdx}); event.stopPropagation();" style="font-size: 0.9rem;">✕</button>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function renderElements() {
+            return Object.entries(ELEMENTS).map(([cat, data]) => {
+                const isOpen = state.openCats.includes(cat);
+                return `
+                    <div class="category-menu">
+                        <div class="category-header" onclick="toggleCat('${cat}')">
+                            <span>${data.icon} ${cat}</span>
+                            <span>${isOpen ? '▼' : '▶'}</span>
+                        </div>
+                        <div class="category-content ${isOpen ? 'open' : ''}">
+                            ${data.items.map(item => {
+                                const itemStr = JSON.stringify(item).replace(/"/g, '&quot;');
+                                return `
+                                    <div class="elem-item" onclick='addElem(${itemStr})'>
+                                        <div class="elem-icon">${item.symbol}</div>
+                                        <div class="elem-info">
+                                            <div class="elem-name">${item.name}</div>
+                                            <div class="elem-desc">${item.desc}</div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderIO() {
+            return `
+                <div class="io-form">
+                    <h3 style="margin-bottom: 1rem;">➕ Yeni I/O Ekle</h3>
+                    <div class="form-group">
+                        <label class="form-label">Tip</label>
+                        <select class="form-select" id="io-type">
+                            <option value="input">🔵 Input</option>
+                            <option value="output">🔴 Output</option>
+                            <option value="memory">🟡 Memory</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">İsim</label>
+                        <input class="form-input" id="io-name" placeholder="örn: Start Button">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Adres</label>
+                        <input class="form-input" id="io-address" placeholder="örn: I0.0, Q0.0">
+                    </div>
+                    <button class="btn-large btn-primary" onclick="addNewIO()">✅ Ekle</button>
+                </div>
+
+                <h3 style="margin-bottom: 1rem;">📋 I/O Listesi (${state.inputs.length + state.outputs.length + state.memory.length})</h3>
+                
+                <div class="io-list">
+                    ${state.inputs.map((io, i) => `
+                        <div class="io-item input">
+                            <div class="io-icon">🔵</div>
+                            <div class="io-indicator ${io.state ? 'on' : ''}"></div>
+                            <div class="io-details">
+                                <div class="io-address">${io.id}</div>
+                                <div class="io-name">${io.name}</div>
+                            </div>
+                            <button class="action-btn danger" onclick="deleteIO('input',${i})">✕</button>
+                        </div>
+                    `).join('')}
+                    
+                    ${state.outputs.map((io, i) => `
+                        <div class="io-item output">
+                            <div class="io-icon">🔴</div>
+                            <div class="io-indicator ${io.state ? 'on' : ''}"></div>
+                            <div class="io-details">
+                                <div class="io-address">${io.id}</div>
+                                <div class="io-name">${io.name}</div>
+                            </div>
+                            <button class="action-btn danger" onclick="deleteIO('output',${i})">✕</button>
+                        </div>
+                    `).join('')}
+                    
+                    ${state.memory.map((io, i) => `
+                        <div class="io-item memory">
+                            <div class="io-icon">🟡</div>
+                            <div class="io-indicator ${io.state ? 'on' : ''}"></div>
+                            <div class="io-details">
+                                <div class="io-address">${io.id}</div>
+                                <div class="io-name">${io.name}</div>
+                            </div>
+                            <button class="action-btn danger" onclick="deleteIO('memory',${i})">✕</button>
+                        </div>
+                    `).join('')}
+                    
+                    ${state.inputs.length + state.outputs.length + state.memory.length === 0 ? 
+                        '<div style="text-align:center; padding: 2rem; color: #aaa;">Henüz I/O eklenmemiş</div>' : ''}
+                </div>
+            `;
+        }
+
+        function renderSimulate() {
+            return `
+                <div class="info-box">
+                    ℹ️ Girişlere tıklayarak durumlarını değiştirin. "BAŞLAT" butonuna basarak simülasyonu çalıştırın.
+                </div>
+                
+                <h3 style="margin-bottom: 1rem;">🎮 Giriş Kontrolleri</h3>
+                <div class="control-grid">
+                    ${state.inputs.map((inp, i) => `
+                        <button class="control-btn ${inp.state ? 'active' : ''}" onclick="toggleInput(${i})">
+                            <div style="font-size: 0.8rem;">${inp.id}</div>
+                            <div>${inp.name}</div>
+                        </button>
+                    `).join('')}
+                    ${state.inputs.length === 0 ? '<div style="grid-column: 1/-1; text-align: center; color: #aaa; padding: 2rem;">Henüz giriş tanımlanmamış</div>' : ''}
+                </div>
+
+                <h3 style="margin: 2rem 0 1rem 0;">📊 Çıkış Monitörü</h3>
+                <div class="io-list">
+                    ${state.outputs.map(out => `
+                        <div class="io-item output" style="background: ${out.state ? '#1b5e20' : '#3a3a3a'};">
+                            <div class="io-icon">🔴</div>
+                            <div class="io-indicator ${out.state ? 'on' : ''}"></div>
+                            <div class="io-details">
+                                <div class="io-address">${out.id}</div>
+                                <div class="io-name">${out.name}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                    ${state.outputs.length === 0 ? '<div style="text-align:center; padding: 2rem; color: #aaa;">Henüz çıkış tanımlanmamış</div>' : ''}
+                </div>
+            `;
+        }
+
+        function renderEditModal() {
+            const { netId, elemIdx, parallelIdx } = state.editModal;
+            const net = state.networks.find(n => n.id === netId);
+            if (!net) return '';
+            
+            const element = parallelIdx === -1 ? 
+                net.elements[elemIdx] : 
+                net.elements[elemIdx].parallels[parallelIdx];
+
+            return `
+                <div class="modal" onclick="if(event.target===this) closeModal()">
+                    <div class="modal-content">
+                        <h2 class="modal-title">Eleman Düzenle</h2>
+                        ${element.address !== undefined ? `
+                            <div class="form-group">
+                                <label class="form-label">Adres</label>
+                                <input class="form-input" id="edit-address" value="${element.address || ''}">
+                            </div>
+                        ` : ''}
+                        ${element.params ? Object.entries(element.params).map(([k, v]) => `
+                            <div class="form-group">
+                                <label class="form-label">${k}</label>
+                                <input class="form-input" id="edit-${k}" value="${v}">
+                            </div>
+                        `).join('') : ''}
+                        <div style="display:flex; gap:1rem; margin-top:1rem;">
+                            <button class="btn-large btn-secondary" onclick="closeModal()">İptal</button>
+                            <button class="btn-large btn-primary" onclick="saveEdit()">Kaydet</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Fonksiyonlar
+        function setTab(tab) {
+            state.tab = tab;
+            render();
+        }
+
+        function getStateHash() {
+            return JSON.stringify({
+                running: state.running,
+                inputs: state.inputs.map(i => ({ id: i.id, state: i.state })),
+                outputs: state.outputs.map(o => ({ id: o.id, state: o.state })),
+                memory: state.memory.map(m => ({ id: m.id, state: m.state }))
+            });
+        }
+
+        function toggleRun() {
+            state.running = !state.running;
+            
+            if (state.running) {
+                console.log('Simülasyon başlatıldı');
+                lastStateHash = getStateHash();
+                
+                simInterval = setInterval(() => {
+                    evaluateLogic();
+                    
+                    const currentHash = getStateHash();
+                    if (currentHash !== lastStateHash) {
+                        lastStateHash = currentHash;
+                        render();
+                    }
+                }, 100);
+                
+                render();
+            } else {
+                console.log('Simülasyon durduruldu');
+                if (simInterval !== null && simInterval !== undefined) {
+                    clearInterval(simInterval);
+                    simInterval = null;
+                }
+                render();
+            }
+        }
+
+        function evaluateLogic() {
+            state.networks.forEach(net => {
+                // Her elemandaki tüm dalları değerlendir (ana + paraleller)
+                let result = true;
+                let outputAddress = null;
+                let outputType = null;
+
+                net.elements.forEach(element => {
+                    // Ana eleman + paralel dalların OR'u
+                    let elementResult = evalElement(element);
+                    
+                    if (element.parallels && element.parallels.length > 0) {
+                        element.parallels.forEach(parallel => {
+                            elementResult = elementResult || evalElement(parallel);
+                        });
+                    }
+
+                    // Kontaklar için AND mantığı
+                    if (element.type.startsWith('contact-') || element.type.startsWith('cmp-')) {
+                        result = result && elementResult;
+                    }
+                    
+                    // Output elemanları
+                    if (['coil', 'set', 'reset', 'coil-inv'].includes(element.type)) {
+                        outputAddress = element.address;
+                        outputType = element.type;
+                    }
+                });
+
+                // Output güncelle
+                if (outputAddress) {
+                    if (outputType === 'coil') {
+                        setState(outputAddress, result);
+                    } else if (outputType === 'coil-inv') {
+                        setState(outputAddress, !result);
+                    } else if (outputType === 'set' && result) {
+                        setState(outputAddress, true);
+                    } else if (outputType === 'reset' && result) {
+                        setState(outputAddress, false);
+                    }
+                }
+            });
+        }
+
+        function evalElement(el) {
+            if (el.type === 'contact-no') return getState(el.address);
+            if (el.type === 'contact-nc') return !getState(el.address);
+            if (el.type.startsWith('cmp-')) {
+                const v1 = parseFloat(el.params?.IN1) || 0;
+                const v2 = parseFloat(el.params?.IN2) || 0;
+                if (el.type === 'cmp-eq') return v1 === v2;
+                if (el.type === 'cmp-gt') return v1 > v2;
+                if (el.type === 'cmp-lt') return v1 < v2;
+            }
+            return false;
+        }
+
+        function getState(addr) {
+            if (!addr) return false;
+            const io = [...state.inputs, ...state.outputs, ...state.memory].find(x => x.id === addr);
+            return io ? io.state : false;
+        }
+
+        function setState(addr, val) {
+            const io = [...state.outputs, ...state.memory].find(x => x.id === addr);
+            if (io) io.state = val;
+        }
+
+        function toggleInput(idx) {
+            state.inputs[idx].state = !state.inputs[idx].state;
+            if (state.running) {
+                evaluateLogic();
+            }
+            render();
+        }
+
+        function addNetwork() {
+            state.networks.push({ id: Date.now(), elements: [] });
+            render();
+        }
+
+        function deleteNetwork(id) {
+            if (state.networks.length === 1) {
+                alert('En az bir network olmalı!');
+                return;
+            }
+            if (confirm('Bu network\'ü silmek istediğinizden emin misiniz?')) {
+                state.networks = state.networks.filter(n => n.id !== id);
+                render();
+            }
+        }
+
+        function toggleCat(cat) {
+            const idx = state.openCats.indexOf(cat);
+            if (idx > -1) state.openCats.splice(idx, 1);
+            else state.openCats.push(cat);
+            render();
+        }
+
+        function addElem(elem) {
+            if (state.networks.length === 0) addNetwork();
+            const lastNet = state.networks[state.networks.length - 1];
+            
+            // YENİ: parallels array ekle
+            const newElem = { ...elem, parallels: [] };
+            lastNet.elements.push(newElem);
+            
+            setTab('editor');
+        }
+
+        function addParallelToElement(netId, elemIdx) {
+            state.elementMenu = null;
+            // Elemanlar sekmesine git, kullanıcı eleman seçsin
+            state.pendingParallel = { netId, elemIdx };
+            alert('Şimdi "Elemanlar" sekmesinden paralel dal için eleman seçin');
+            setTab('elements');
+        }
+
+        // Eleman eklerken pending parallel kontrolü
+        const originalAddElem = addElem;
+        addElem = function(elem) {
+            if (state.pendingParallel) {
+                const { netId, elemIdx } = state.pendingParallel;
+                const net = state.networks.find(n => n.id === netId);
+                if (net && net.elements[elemIdx]) {
+                    if (!net.elements[elemIdx].parallels) {
+                        net.elements[elemIdx].parallels = [];
+                    }
+                    net.elements[elemIdx].parallels.push({ ...elem });
+                }
+                state.pendingParallel = null;
+                setTab('editor');
+            } else {
+                originalAddElem(elem);
+            }
+        };
+
+        function handleElementClick(event, netId, elemIdx, parallelIdx) {
+            event.stopPropagation();
+            if (state.elementMenu && 
+                state.elementMenu.netId === netId && 
+                state.elementMenu.elemIdx === elemIdx &&
+                state.elementMenu.parallelIdx === parallelIdx) {
+                closeElementMenu();
+            } else {
+                editElement(netId, elemIdx, parallelIdx);
+            }
+        }
+
+        function editElement(netId, elemIdx, parallelIdx) {
+            state.editModal = { netId, elemIdx, parallelIdx };
+            render();
+        }
+
+        function deleteElement(netId, elemIdx, parallelIdx) {
+            const net = state.networks.find(n => n.id === netId);
+            if (!net) return;
+            
+            if (parallelIdx === -1) {
+                // Ana eleman sil
+                net.elements.splice(elemIdx, 1);
+            } else {
+                // Paralel eleman sil
+                net.elements[elemIdx].parallels.splice(parallelIdx, 1);
+            }
+            
+            closeElementMenu();
+            render();
+        }
+
+        function closeElementMenu() {
+            state.elementMenu = null;
+            render();
+        }
+
+        function closeModal() {
+            state.editModal = null;
+            render();
+        }
+
+        function saveEdit() {
+            const { netId, elemIdx, parallelIdx } = state.editModal;
+            const net = state.networks.find(n => n.id === netId);
+            if (!net) return;
+            
+            const element = parallelIdx === -1 ? 
+                net.elements[elemIdx] : 
+                net.elements[elemIdx].parallels[parallelIdx];
+            
+            const addrInput = document.getElementById('edit-address');
+            if (addrInput) element.address = addrInput.value;
+            
+            if (element.params) {
+                for (const k of Object.keys(element.params)) {
+                    const inp = document.getElementById(`edit-${k}`);
+                    if (inp) element.params[k] = inp.value;
+                }
+            }
+            
+            closeModal();
+        }
+
+        function addNewIO() {
+            const type = document.getElementById('io-type').value;
+            const name = document.getElementById('io-name').value.trim();
+            const addr = document.getElementById('io-address').value.trim();
+            
+            if (!name || !addr) {
+                alert('İsim ve adres gerekli!');
+                return;
+            }
+            
+            const prefix = type === 'input' ? 'I' : type === 'output' ? 'Q' : 'M';
+            if (!addr.startsWith(prefix)) {
+                alert(`Adres ${prefix} ile başlamalı!`);
+                return;
+            }
+            
+            const list = type === 'input' ? state.inputs : type === 'output' ? state.outputs : state.memory;
+            if (list.some(x => x.id === addr)) {
+                alert('Bu adres zaten kullanılıyor!');
+                return;
+            }
+            
+            list.push({ id: addr, name, state: false });
+            document.getElementById('io-name').value = '';
+            document.getElementById('io-address').value = '';
+            render();
+        }
+
+        function deleteIO(type, idx) {
+            if (confirm('Bu I/O\'yu silmek istediğinizden emin misiniz?')) {
+                const list = type === 'input' ? state.inputs : type === 'output' ? state.outputs : state.memory;
+                list.splice(idx, 1);
+                render();
+            }
+        }
+
+        function saveProgram() {
+            const data = JSON.stringify(state, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 's7-program.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function uploadPLC() {
+            alert('Program PLC\'ye yüklendi! (Simülasyon)');
+        }
+
+        // Touch events
+        let touchTimer = null;
+        let touchStartPos = { x: 0, y: 0 };
+        
+        function setupTouchEvents() {
+            document.addEventListener('touchstart', function(e) {
+                const elem = e.target.closest('.ladder-elem');
+                if (!elem) return;
+                
+                touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                
+                touchTimer = setTimeout(() => {
+                    const netId = parseInt(elem.getAttribute('data-net-id'));
+                    const elemIdx = parseInt(elem.getAttribute('data-elem-idx'));
+                    const parallelIdx = parseInt(elem.getAttribute('data-parallel-idx'));
+                    
+                    e.preventDefault();
+                    
+                    state.elementMenu = { netId, elemIdx, parallelIdx };
+                    render();
+                    
+                    if (navigator.vibrate) {
+                        navigator.vibrate(50);
+                    }
+                }, 500);
+            }, { passive: false });
+            
+            document.addEventListener('touchmove', function(e) {
+                if (touchTimer) {
+                    const moveThreshold = 10;
+                    const deltaX = Math.abs(e.touches[0].clientX - touchStartPos.x);
+                    const deltaY = Math.abs(e.touches[0].clientY - touchStartPos.y);
+                    
+                    if (deltaX > moveThreshold || deltaY > moveThreshold) {
+                        clearTimeout(touchTimer);
+                        touchTimer = null;
+                    }
+                }
+            });
+            
+            document.addEventListener('touchend', function(e) {
+                if (touchTimer) {
+                    clearTimeout(touchTimer);
+                    touchTimer = null;
+                }
+            });
+        }
+
+        // Başlat
+        render();
+        setupTouchEvents();
+        
+        document.addEventListener('click', function(e) {
+            if (state.elementMenu && !e.target.closest('.ladder-elem')) {
+                closeElementMenu();
+            }
+        });
+        
+        // ═══════════════════════════════════════════════════════════════════
+        // COPYRIGHT PROTECTION
+        // ═══════════════════════════════════════════════════════════════════
+        console.log('%c⚠️ COPYRIGHT PROTECTED', 'color: red; font-size: 20px; font-weight: bold;');
+        console.log('%c© 2025 PLC Ladder Editor Pro - All Rights Reserved', 'color: #ff5722; font-size: 14px;');
+        console.log('%cUnauthorized copying is PROHIBITED', 'color: #ff9800; font-size: 12px;');
+        
+        // PWA Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(reg => console.log('%c✅ PWA Ready', 'color: #4caf50'))
+                    .catch(err => console.log('SW registration failed'));
+            });
+        }
+    </script>
+</body>
+</html>

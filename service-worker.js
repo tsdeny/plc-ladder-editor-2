@@ -1,0 +1,23 @@
+/*
+ * PLC Ladder Editor Pro - Service Worker
+ * Copyright (c) 2025 - All Rights Reserved
+ */
+
+const CACHE_NAME = 'plc-editor-v1';
+const ASSETS = [
+  '/',
+  '/index.html',
+  '/manifest.json'
+];
+
+self.addEventListener('install', (e) => {
+  e.waitUntil(
+    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
+  );
+});
+
+self.addEventListener('fetch', (e) => {
+  e.respondWith(
+    caches.match(e.request).then(response => response || fetch(e.request))
+  );
+});
